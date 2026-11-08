@@ -9,25 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SummaryRouteImport } from './routes/summary'
-import { Route as CardRouteImport } from './routes/card'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CardRouteImport } from './routes/card'
 import { Route as LogRouteImport } from './routes/log'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as SummaryRouteImport } from './routes/summary'
 
-const SummaryRoute = SummaryRouteImport.update({
-  id: '/summary',
-  path: '/summary',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CardRoute = CardRouteImport.update({
   id: '/card',
   path: '/card',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogRoute = LogRouteImport.update({
@@ -40,28 +35,33 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SummaryRoute = SummaryRouteImport.update({
+  id: '/summary',
+  path: '/summary',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/card': typeof CardRoute
-  '/summary': typeof SummaryRoute
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
+  '/summary': typeof SummaryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/card': typeof CardRoute
-  '/summary': typeof SummaryRoute
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
+  '/summary': typeof SummaryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/card': typeof CardRoute
-  '/summary': typeof SummaryRoute
   '/log': typeof LogRoute
   '/profile': typeof ProfileRoute
+  '/summary': typeof SummaryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -74,9 +74,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CardRoute: typeof CardRoute
-  SummaryRoute: typeof SummaryRoute
   LogRoute: typeof LogRoute
   ProfileRoute: typeof ProfileRoute
+  SummaryRoute: typeof SummaryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -95,13 +95,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/summary': {
-      id: '/summary'
-      path: '/summary'
-      fullPath: '/summary'
-      preLoaderRoute: typeof SummaryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/log': {
       id: '/log'
       path: '/log'
@@ -116,15 +109,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/summary': {
+      id: '/summary'
+      path: '/summary'
+      fullPath: '/summary'
+      preLoaderRoute: typeof SummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CardRoute: CardRoute,
-  SummaryRoute: SummaryRoute,
   LogRoute: LogRoute,
   ProfileRoute: ProfileRoute,
+  SummaryRoute: SummaryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

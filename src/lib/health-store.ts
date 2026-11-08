@@ -1,4 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
+import { num, type Entry, type FamilyDiabetes, type PersonInput } from "@/lib/health-engine";
+
+export type YesNo = "" | "yes" | "no";
 
 export type Profile = {
   name: string;
@@ -7,6 +10,16 @@ export type Profile = {
   bloodGroup: string;
   heightCm: string;
   weightKg: string;
+  waistCm: string;
+  allergies: string;
+  conditions: string;
+  regularMedication: string;
+  emergencyContact: string;
+  activeDaily: YesNo;
+  fruitVegDaily: YesNo;
+  bpMedication: YesNo;
+  highGlucoseHistory: YesNo;
+  family: "" | FamilyDiabetes;
 };
 
 export type DailyLog = {
@@ -15,7 +28,12 @@ export type DailyLog = {
   medications: string;
   sleepHours: string;
   waterGlasses: string;
-  symptoms: string;
+  symptoms: string; // free-text notes
+  symptomIds: string[];
+  areas: string[];
+  systolic: string;
+  diastolic: string;
+  glucose: string;
 };
 
 const PROFILE_KEY = "health-twin:profile";
@@ -28,10 +46,32 @@ export const emptyProfile: Profile = {
   bloodGroup: "",
   heightCm: "",
   weightKg: "",
+  waistCm: "",
+  allergies: "",
+  conditions: "",
+  regularMedication: "",
+  emergencyContact: "",
+  activeDaily: "",
+  fruitVegDaily: "",
+  bpMedication: "",
+  highGlucoseHistory: "",
+  family: "",
 };
 
 export function emptyLog(date: string): DailyLog {
-  return { date, meals: "", medications: "", sleepHours: "", waterGlasses: "", symptoms: "" };
+  return {
+    date,
+    meals: "",
+    medications: "",
+    sleepHours: "",
+    waterGlasses: "",
+    symptoms: "",
+    symptomIds: [],
+    areas: [],
+    systolic: "",
+    diastolic: "",
+    glucose: "",
+  };
 }
 
 export function todayStr() {
@@ -39,20 +79,6 @@ export function todayStr() {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${m}-${day}`;
-}
-
-export function computeBmi(heightCm: string, weightKg: string): number | null {
-  const h = parseFloat(heightCm) / 100;
-  const w = parseFloat(weightKg);
-  if (!h || !w || h <= 0 || w <= 0) return null;
-  return Math.round((w / (h * h)) * 10) / 10;
-}
-
-export function bmiLabel(bmi: number) {
-  if (bmi < 18.5) return "Underweight";
-  if (bmi < 25) return "Healthy";
-  if (bmi < 30) return "Overweight";
-  return "Obese";
 }
 
 function read<T>(key: string, fallback: T): T {
@@ -64,11 +90,46 @@ function read<T>(key: string, fallback: T): T {
   }
 }
 
+const yn = (v: YesNo): boolean | null => (v === "yes" ? true : v === "no" ? false : null);
+
+export function toPerson(p: Profile): PersonInput {
+  const sex = p.sex === "Female" || p.sex === "Male" || p.sex === "Other" ? p.sex : null;
+  return {
+    age: num(p.age),
+    sex,
+    heightCm: num(p.heightCm),
+    weightKg: num(p.weightKg),
+    waistCm: num(p.waistCm),
+    answers: {
+      activeDaily: yn(p.activeDaily),
+      fruitVegDaily: yn(p.fruitVegDaily),
+      bpMedication: yn(p.bpMedication),
+      highGlucoseHistory: yn(p.highGlucoseHistory),
+      family: p.family || null,
+    },
+  };
+}
+
+export function toEntries(logs: Record<string, DailyLog>): Entry[] {
+  return Object.values(logs)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map((l) => ({
+      date: l.date,
+      sleepHours: num(l.sleepHours),
+      water: num(l.waterGlasses),
+      symptoms: l.symptomIds,
+      systolic: num(l.systolic),
+      diastolic: num(l.diastolic),
+      glucose: num(l.glucose),
+      areas: l.areas,
+    }));
+}
+
 export function useProfile() {
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    setProfile({ ...emptyProfile, ...read(PROFILE_KEY, emptyProfile) });
+    setProfile({ ...emptyProfile, ...read<Partial<Profile>>(PROFILE_KEY, {}) });
     setLoaded(true);
   }, []);
   const save = useCallback((p: Profile) => {
@@ -82,7 +143,11 @@ export function useLogs() {
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    setLogs(read(LOGS_KEY, {}));
+    // Fill in fields missing from entries saved by older versions.
+    const raw = read<Record<string, Partial<DailyLog>>>(LOGS_KEY, {});
+    const fixed: Record<string, DailyLog> = {};
+    for (const [d, l] of Object.entries(raw)) fixed[d] = { ...emptyLog(d), ...l };
+    setLogs(fixed);
     setLoaded(true);
   }, []);
   const saveLog = useCallback((log: DailyLog) => {
