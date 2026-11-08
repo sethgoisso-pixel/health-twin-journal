@@ -28,3 +28,6 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+- All Health Twin data lives in browser localStorage via `src/lib/health-store.ts` hooks (read in useEffect to avoid hydration mismatch); no backend.
