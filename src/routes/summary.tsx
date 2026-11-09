@@ -110,10 +110,23 @@ function SummaryPage() {
             <p className="mt-1">
               {risk.result.score} of {risk.result.max}: {risk.result.band}, {risk.result.tenYearRisk.replace("about ", "about ")} over 10 years for people with this score. A screening score, not a diagnosis.
             </p>
+          ) : risk && "notApplicable" in risk ? (
+            <p className="mt-1 text-muted-foreground">{risk.notApplicable}</p>
           ) : (
             <p className="mt-1 text-muted-foreground">Not computed. Missing: {risk && "missing" in risk ? risk.missing.join(", ") : "profile data"}.</p>
           )}
         </section>
+
+        {(report.mood.low || report.mood.worry) && (
+          <section>
+            <h2 className={h}>Mood and worry check (PHQ-2, GAD-2)</h2>
+            <p className="mt-1">
+              {report.mood.low ? `Mood ${report.mood.low.score} of ${report.mood.low.max}${report.mood.low.positive ? " (at or above the usual cutoff)" : ""}` : "Mood not answered"}
+              {" | "}
+              {report.mood.worry ? `Worry ${report.mood.worry.score} of ${report.mood.worry.max}${report.mood.worry.positive ? " (at or above the usual cutoff)" : ""}` : "Worry not answered"}. Screening questions, not a diagnosis.
+            </p>
+          </section>
+        )}
 
         {questions.length > 0 && (
           <section>

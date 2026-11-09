@@ -20,6 +20,10 @@ export type Profile = {
   bpMedication: YesNo;
   highGlucoseHistory: YesNo;
   family: "" | FamilyDiabetes;
+  phq1: string;
+  phq2: string;
+  gad1: string;
+  gad2: string;
 };
 
 export type DailyLog = {
@@ -56,6 +60,10 @@ export const emptyProfile: Profile = {
   bpMedication: "",
   highGlucoseHistory: "",
   family: "",
+  phq1: "",
+  phq2: "",
+  gad1: "",
+  gad2: "",
 };
 
 export function emptyLog(date: string): DailyLog {
@@ -106,6 +114,12 @@ export function toPerson(p: Profile): PersonInput {
       bpMedication: yn(p.bpMedication),
       highGlucoseHistory: yn(p.highGlucoseHistory),
       family: p.family || null,
+    },
+    mood: {
+      phq1: num(p.phq1),
+      phq2: num(p.phq2),
+      gad1: num(p.gad1),
+      gad2: num(p.gad2),
     },
   };
 }

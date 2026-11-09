@@ -163,6 +163,8 @@ function Dashboard() {
               </table>
               <p className="mt-3 text-xs text-muted-foreground">Source: {risk.result.source}. Validated mainly in European populations. A screening score, not a diagnosis.</p>
             </>
+          ) : risk && "notApplicable" in risk ? (
+            <p className="mt-3 text-sm text-muted-foreground">{risk.notApplicable} Your sleep, water, readings and symptoms are still tracked below.</p>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
               The score needs: {risk && "missing" in risk ? risk.missing.join(", ") : "your profile"}. <Link to="/profile" className="text-primary underline">Complete your profile</Link>. Nothing is guessed.
@@ -179,6 +181,28 @@ function Dashboard() {
           )}
         </section>
       </div>
+
+      <section className="mt-6 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-display text-xl text-foreground">Mood and worry check</h2>
+        {report.mood.low || report.mood.worry ? (
+          <>
+            <ul className="mt-3 space-y-1 text-sm text-foreground">
+              {report.mood.low && <li>Mood (PHQ-2): {report.mood.low.score} of {report.mood.low.max}{report.mood.low.positive ? ", at or above the usual cutoff" : ", below the usual cutoff"}</li>}
+              {report.mood.worry && <li>Worry (GAD-2): {report.mood.worry.score} of {report.mood.worry.max}{report.mood.worry.positive ? ", at or above the usual cutoff" : ", below the usual cutoff"}</li>}
+            </ul>
+            {(report.mood.low?.positive || report.mood.worry?.positive) && (
+              <p className="mt-3 rounded-xl bg-secondary p-3 text-sm text-foreground">
+                Worth talking with a doctor or counsellor. If you ever feel unsafe or think about harming yourself, contact your local emergency number or someone you trust right away.
+              </p>
+            )}
+            <p className="mt-3 text-xs text-muted-foreground">Source: {report.mood.source}. A screen, not a diagnosis.</p>
+          </>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Four quick questions in your <Link to="/profile" className="text-primary underline">profile</Link> give a mood and worry screen. Nothing is guessed.
+          </p>
+        )}
+      </section>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <section className="rounded-2xl border border-border bg-card p-6 lg:col-span-2">

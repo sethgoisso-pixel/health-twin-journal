@@ -37,6 +37,17 @@ function ProfilePage() {
       </select></label>
   );
 
+  const moodQ = (k: "phq1" | "phq2" | "gad1" | "gad2", label: string) => (
+    <label className="space-y-1 sm:col-span-2"><span className="text-sm text-muted-foreground">{label}</span>
+      <select className={fieldClass} value={form[k]} onChange={set(k)}>
+        <option value="">Select...</option>
+        <option value="0">Not at all</option>
+        <option value="1">Several days</option>
+        <option value="2">More than half the days</option>
+        <option value="3">Nearly every day</option>
+      </select></label>
+  );
+
   return (
     <AppShell>
       <PageTitle title="Profile" subtitle="Stored only in this browser. Nothing is sent anywhere unless you press an AI button." />
@@ -99,6 +110,17 @@ function ProfilePage() {
               <option value="extended">Grandparent, aunt, uncle or cousin</option>
               <option value="close">Parent, brother, sister or child</option>
             </select></label>
+        </section>
+
+        <section className="grid gap-5 rounded-2xl border border-border bg-card p-6 sm:grid-cols-2">
+          <h2 className="font-display text-xl text-foreground sm:col-span-2">Mood and worry check</h2>
+          <p className="text-sm text-muted-foreground sm:col-span-2">
+            Over the last two weeks, how often have you been bothered by the following? These PHQ-2 and GAD-2 screening questions are not a diagnosis.
+          </p>
+          {moodQ("phq1", "Little interest or pleasure in doing things")}
+          {moodQ("phq2", "Feeling down, depressed or hopeless")}
+          {moodQ("gad1", "Feeling nervous, anxious or on edge")}
+          {moodQ("gad2", "Not being able to stop or control worrying")}
         </section>
 
         <div className="flex items-center gap-3">

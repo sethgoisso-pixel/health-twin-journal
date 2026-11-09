@@ -149,6 +149,22 @@ export function findrisc(a: FindriscInput): FindriscResult {
   return { score, max: 26, band, tenYearRisk, parts, source: FINDRISC_SOURCE };
 }
 
+/* ------------------------------------------------------------- Mood screens
+ * PHQ-2 (low mood) and GAD-2 (worry): two questions each, scored 0-3, total 0-6.
+ * Kroenke K, Spitzer RL, Williams JB. Med Care 2003;41:1284-92 (PHQ-2); Kroenke K et al. Ann Intern Med 2007;146:317-25 (GAD-2).
+ * A total of 3 or more is the usual cutoff to talk with a professional. A screen, never a diagnosis. */
+
+export type Screen = { score: number; max: 6; cutoff: 3; positive: boolean };
+
+export function scoreScreen(a: number | null, b: number | null): Screen | null {
+  if (a === null || b === null || a < 0 || a > 3 || b < 0 || b > 3) return null;
+  const score = a + b;
+  return { score, max: 6, cutoff: 3, positive: score >= 3 };
+}
+
+export const MOOD_SOURCE = "PHQ-2 and GAD-2 (Kroenke et al.)";
+export const FINDRISC_MIN_AGE = 25;
+
 /* ----------------------------------------------------------- Patterns in the log */
 
 export type Pattern = {
@@ -257,6 +273,7 @@ export type PersonInput = {
     highGlucoseHistory: boolean | null;
     family: FamilyDiabetes | null;
   };
+  mood: { phq1: number | null; phq2: number | null; gad1: number | null; gad2: number | null };
 };
 
 export type TraceStep = { tool: string; summary: string };
@@ -269,7 +286,8 @@ export type HealthReport = {
   water: { avg: number } | null;
   bp: { sys: number; dia: number; reading: Reading } | null;
   glucose: { value: number; reading: Reading } | null;
-  risk: { result: FindriscResult } | { missing: string[] } | null;
+  risk: { result: FindriscResult } | { missing: string[] } | { notApplicable: string } | null;
+  mood: { low: Screen | null; worry: Screen | null; source: string };
   patterns: Pattern[];
   symptomDays: { label: string; days: number }[];
   redFlags: string[];
@@ -315,7 +333,10 @@ export function runHealthTools(person: PersonInput, all: Entry[], windowDays = 1
   if (an.bpMedication === null) missing.push("blood pressure medication");
   if (an.highGlucoseHistory === null) missing.push("past high glucose");
   if (an.family === null) missing.push("family history");
-  if (missing.length) {
+  if (person.age !== null && person.age < FINDRISC_MIN_AGE) {
+    risk = { notApplicable: `This score was designed for adults aged ${FINDRISC_MIN_AGE} and over, so it is not shown.` };
+    trace.push({ tool: "score_findrisc", summary: `Skipped: designed for adults aged ${FINDRISC_MIN_AGE} and over` });
+  } else if (missing.length) {
     risk = { missing };
     trace.push({ tool: "score_findrisc", summary: `Not computed: missing ${missing.join(", ")}` });
   } else {
@@ -333,6 +354,15 @@ export function runHealthTools(person: PersonInput, all: Entry[], windowDays = 1
     risk = { result };
     trace.push({ tool: "score_findrisc", summary: `Score ${result.score} of ${result.max}: ${result.band}, ${result.tenYearRisk} 10-year risk of type 2 diabetes` });
   }
+
+  const low = scoreScreen(person.mood.phq1, person.mood.phq2);
+  const worry = scoreScreen(person.mood.gad1, person.mood.gad2);
+  trace.push({
+    tool: "score_mood",
+    summary: low || worry
+      ? [low ? `PHQ-2 ${low.score} of ${low.max}` : "PHQ-2 not answered", worry ? `GAD-2 ${worry.score} of ${worry.max}` : "GAD-2 not answered"].join("; ")
+      : "Mood questions not answered",
+  });
 
   const patterns = findPatterns(entries);
   trace.push({ tool: "detect_patterns", summary: patterns.length ? `${patterns.length} association(s) found in your log` : entries.length < MIN_DAYS_LOGGED ? `Needs ${MIN_DAYS_LOGGED} logged days, has ${entries.length}` : "No clear association found" });
@@ -353,6 +383,7 @@ export function runHealthTools(person: PersonInput, all: Entry[], windowDays = 1
     bp,
     glucose,
     risk,
+    mood: { low, worry, source: MOOD_SOURCE },
     patterns,
     symptomDays,
     redFlags,
@@ -397,6 +428,17 @@ export function buildBriefing(r: HealthReport): Briefing {
     if (x.score >= 12) q.push("My diabetes risk score is moderate or higher. Which tests and lifestyle steps do you advise?");
   } else if (r.risk && "missing" in r.risk) {
     points.push(`The diabetes risk score needs more information: ${r.risk.missing.join(", ")}.`);
+  } else if (r.risk && "notApplicable" in r.risk) {
+    points.push(`The type 2 diabetes risk score is not shown. ${r.risk.notApplicable}`);
+  }
+  const m = r.mood;
+  for (const [label, sc] of [["Mood check (PHQ-2)", m.low], ["Worry check (GAD-2)", m.worry]] as const) {
+    if (!sc) continue;
+    points.push(`${label}: ${sc.score} of ${sc.max}.${sc.positive ? ` That is at or above the usual cutoff of ${sc.cutoff}, so it is worth talking with a doctor or counsellor.` : " That is below the usual cutoff."}`);
+  }
+  if ((m.low && m.low.positive) || (m.worry && m.worry.positive)) {
+    points.push("If you ever feel unsafe or think about harming yourself, contact your local emergency number or someone you trust right away.");
+    q.push("My mood or worry check scored at or above the usual cutoff. Who could I talk to about it?");
   }
   for (const p of r.patterns.slice(0, 2)) {
     points.push(p.text);

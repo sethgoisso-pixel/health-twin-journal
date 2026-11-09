@@ -9,6 +9,7 @@ import {
   findrisc,
   glucoseCategory,
   runHealthTools,
+  scoreScreen,
   scanRedFlags,
   verifyBriefing,
   verifyText,
@@ -133,13 +134,14 @@ describe("patterns in the log", () => {
 const person: PersonInput = {
   age: 52, sex: "Male", heightCm: 175, weightKg: 83, waistCm: 100,
   answers: { activeDaily: false, fruitVegDaily: false, bpMedication: true, highGlucoseHistory: false, family: "close" },
+  mood: { phq1: null, phq2: null, gad1: null, gad2: null },
 };
 
 describe("report and briefing", () => {
   const entries = [day(1, { systolic: 142, diastolic: 92, glucose: 108 }), day(2), day(3)];
   const r = runHealthTools(person, entries);
   it("runs every tool and records a trace", () => {
-    expect(r.trace.map((t) => t.tool)).toEqual(["compute_bmi", "summarise_log", "check_vitals", "score_findrisc", "detect_patterns", "scan_red_flags"]);
+    expect(r.trace.map((t) => t.tool)).toEqual(["compute_bmi", "summarise_log", "check_vitals", "score_findrisc", "score_mood", "detect_patterns", "scan_red_flags"]);
     expect(r.risk && "result" in r.risk && r.risk.result.score).toBe(16);
   });
   it("lists what is missing instead of guessing a risk score", () => {
@@ -180,5 +182,25 @@ describe("verifier", () => {
     expect(verifyText("Your sleep averaged 7 hours. This is not a medical diagnosis.", new Set(["7"])).ok).toBe(true);
     expect(verifyText("Type 2 diabetes risk score is in the moderate band.", allowed).ok).toBe(true);
     expect(verifyText("Ask your doctor whether a check is worthwhile.", allowed).ok).toBe(true);
+  });
+});
+
+describe("mood and worry screens", () => {
+  it("marks a total of 3 as positive", () => {
+    expect(scoreScreen(1, 2)).toEqual({ score: 3, max: 6, cutoff: 3, positive: true });
+  });
+  it("keeps a total of 2 below the cutoff", () => {
+    expect(scoreScreen(1, 1)?.positive).toBe(false);
+  });
+  it("does not score missing or out-of-range answers", () => {
+    expect(scoreScreen(null, 1)).toBeNull();
+    expect(scoreScreen(4, 1)).toBeNull();
+  });
+});
+
+describe("FINDRISC age limit", () => {
+  it("is not shown for someone under 25", () => {
+    const r = runHealthTools({ ...person, age: 24 }, [day(1)]);
+    expect(r.risk && "notApplicable" in r.risk && r.risk.notApplicable).toContain("25 and over");
   });
 });
