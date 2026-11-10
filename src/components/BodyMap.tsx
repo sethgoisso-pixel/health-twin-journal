@@ -1,4 +1,5 @@
-import type { KeyboardEvent } from "react";
+import { useState, type KeyboardEvent } from "react";
+import { BACK, FRONT, type Part } from "@/lib/body-parts";
 
 export const BODY_AREAS: { id: string; label: string }[] = [
   { id: "head", label: "Head" },
@@ -23,62 +24,92 @@ type Props = {
 };
 
 /**
- * A simple front-view body map. The person is facing you, so "right" is on the left of the picture.
- * "Back" has no place on a front view, so it is a button under the figure.
+ * Anatomical body map with organs, front and back views.
+ * The person faces you in the front view, so "right" is on the left of the picture.
  */
 export function BodyMap({ selected = [], onToggle, counts }: Props) {
+  const [view, setView] = useState<"front" | "back">("front");
+  const parts = view === "front" ? FRONT : BACK;
   const max = counts ? Math.max(1, ...Object.values(counts)) : 1;
-  const strength = (id: string) => {
-    if (counts) return (counts[id] ?? 0) / max;
-    return selected.includes(id) ? 1 : 0;
-  };
-  const shape = (id: string) => {
-    const s = strength(id);
-    return {
-      fill: s > 0 ? "var(--primary)" : "var(--muted)",
-      fillOpacity: s > 0 ? 0.25 + 0.6 * s : 1,
-      stroke: "var(--border)",
-      strokeWidth: 2,
-      style: { cursor: onToggle ? "pointer" : "default" } as const,
-      role: onToggle ? "button" : "img",
-      tabIndex: onToggle ? 0 : -1,
-      "aria-label": `${areaLabel(id)}${selected.includes(id) ? ", marked" : counts?.[id] ? `, marked on ${counts[id]} day(s)` : ""}`,
-      "aria-pressed": onToggle ? selected.includes(id) : undefined,
-      onClick: onToggle ? () => onToggle(id) : undefined,
-      onKeyDown: onToggle
-        ? (e: KeyboardEvent) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onToggle(id);
-            }
-          }
-        : undefined,
-    };
+  const strength = (area: string) => (counts ? (counts[area] ?? 0) / max : selected.includes(area) ? 1 : 0);
+
+  const areas: string[] = [];
+  parts.forEach((p) => { if (!areas.includes(p.area)) areas.push(p.area); });
+
+  const draw = (p: Part, s: number) => {
+    const t = p.mirror ? "translate(200,0) scale(-1,1)" : undefined;
+    if (p.kind === "body") {
+      return (
+        <path
+          key={p.id}
+          d={p.d}
+          transform={t}
+          fill={s > 0 ? "var(--primary)" : "var(--muted)"}
+          fillOpacity={s > 0 ? 0.2 + 0.45 * s : 1}
+          stroke="var(--border)"
+          strokeWidth={1.5}
+        />
+      );
+    }
+    return (
+      <path
+        key={p.id}
+        d={p.d}
+        transform={t}
+        fill={p.fill}
+        stroke={s > 0 ? "var(--primary)" : "rgba(0,0,0,0.25)"}
+        strokeWidth={s > 0 ? 2.5 : 0.8}
+        style={s > 0 ? { filter: "drop-shadow(0 0 4px var(--primary))" } : undefined}
+      />
+    );
   };
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <svg viewBox="0 0 200 420" className="h-72 w-auto" role="group" aria-label="Body map, front view">
-        <circle cx="100" cy="38" r="26" {...shape("head")} />
-        <rect x="60" y="72" width="80" height="76" rx="18" {...shape("chest")} />
-        <rect x="64" y="152" width="72" height="66" rx="16" {...shape("abdomen")} />
-        <rect x="24" y="78" width="30" height="132" rx="14" {...shape("right_arm")} />
-        <rect x="146" y="78" width="30" height="132" rx="14" {...shape("left_arm")} />
-        <rect x="64" y="222" width="34" height="170" rx="16" {...shape("right_leg")} />
-        <rect x="102" y="222" width="34" height="170" rx="16" {...shape("left_leg")} />
+      <div className="inline-flex rounded-full bg-muted p-1 text-sm">
+        {(["front", "back"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setView(v)}
+            aria-pressed={view === v}
+            className={`rounded-full px-4 py-1 ${view === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+          >
+            {v === "front" ? "Front" : "Back"}
+          </button>
+        ))}
+      </div>
+      <svg viewBox="0 0 200 440" className="h-80 w-auto" role="group" aria-label={`Body map, ${view} view`}>
+        {areas.map((area) => {
+          const s = strength(area);
+          const label = `${areaLabel(area)}${selected.includes(area) ? ", marked" : counts?.[area] ? `, marked on ${counts[area]} day(s)` : ""}`;
+          return (
+            <g
+              key={area}
+              role={onToggle ? "button" : "img"}
+              aria-label={label}
+              aria-pressed={onToggle ? selected.includes(area) : undefined}
+              tabIndex={onToggle ? 0 : -1}
+              style={{ cursor: onToggle ? "pointer" : "default" }}
+              onClick={onToggle ? () => onToggle(area) : undefined}
+              onKeyDown={
+                onToggle
+                  ? (e: KeyboardEvent) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onToggle(area);
+                      }
+                    }
+                  : undefined
+              }
+            >
+              {parts.filter((p) => p.area === area && p.kind === "body").map((p) => draw(p, s))}
+              {parts.filter((p) => p.area === area && p.kind === "organ").map((p) => draw(p, s))}
+            </g>
+          );
+        })}
       </svg>
-      {onToggle ? (
-        <button
-          type="button"
-          onClick={() => onToggle("back")}
-          aria-pressed={selected.includes("back")}
-          className={`rounded-full border px-3 py-1 text-sm ${selected.includes("back") ? "border-primary bg-primary/15 text-foreground" : "border-border text-muted-foreground"}`}
-        >
-          Back
-        </button>
-      ) : counts?.["back"] ? (
-        <span className="rounded-full border border-primary bg-primary/15 px-3 py-1 text-sm text-foreground">Back, {counts["back"]} day(s)</span>
-      ) : null}
+      <p className="text-xs text-muted-foreground">{onToggle ? "Tap an area where you feel something." : "Areas marked in the last 14 days."}</p>
     </div>
   );
 }
