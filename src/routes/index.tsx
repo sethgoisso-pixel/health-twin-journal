@@ -237,7 +237,7 @@ function Dashboard() {
                 return (
                   <div key={l.date} className="flex flex-1 flex-col items-center gap-2">
                     <span className="text-xs text-muted-foreground">{h || ""}</span>
-                    <div className="w-full rounded-t-lg bg-primary/70" style={{ height: `${(h / maxSleep) * 100}%`, minHeight: 4 }} />
+                    <div className="w-full rounded-t-lg bg-primary/70" style={{ height: `${Math.round((h / maxSleep) * 100)}px`, minHeight: 4 }} />
                     <span className="text-xs text-muted-foreground">{l.date.slice(5)}</span>
                   </div>
                 );
