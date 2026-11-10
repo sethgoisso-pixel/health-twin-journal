@@ -6,6 +6,7 @@ import { BodyMap } from "@/components/BodyMap";
 import { todayStr, toEntries, toPerson, useLogs, useProfile } from "@/lib/health-store";
 import { NOT_A_DIAGNOSIS, buildBriefing, runHealthTools, type Briefing } from "@/lib/health-engine";
 import { explainReport } from "@/lib/health-ai.functions";
+import { clearAllData, loadDemo } from "@/lib/health-demo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -82,6 +83,30 @@ function Dashboard() {
         title={profile.name ? `Hello, ${profile.name}` : "Your health, gently tracked"}
         subtitle="Your own notes, checked against published references. It shows its work and never diagnoses."
       />
+
+      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-secondary p-4 text-sm">
+        <span className="text-muted-foreground">
+          {sorted.length === 0 ? "New here? See the agent working on an invented example person." : "Example data tools"}
+        </span>
+        <button
+          onClick={() => {
+            if (sorted.length === 0 || window.confirm("This replaces the data saved in this browser with an invented example. Continue?")) loadDemo();
+          }}
+          className="rounded-full bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
+        >
+          Load demo data
+        </button>
+        {sorted.length > 0 && (
+          <button
+            onClick={() => {
+              if (window.confirm("This deletes all data saved in this browser. Continue?")) clearAllData();
+            }}
+            className="rounded-full border border-border px-4 py-2 text-foreground hover:bg-muted"
+          >
+            Clear all data
+          </button>
+        )}
+      </div>
 
       {report.redFlags.length > 0 && (
         <div role="alert" className="mb-6 flex gap-3 rounded-2xl border border-destructive/50 bg-destructive/10 p-5 text-foreground">
@@ -174,11 +199,7 @@ function Dashboard() {
 
         <section className="rounded-2xl border border-border bg-secondary p-6">
           <h2 className="font-display text-xl text-foreground">Where it hurt (14 days)</h2>
-          {Object.keys(areaCounts).length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">Mark areas in the daily log to see them here.</p>
-          ) : (
-            <div className="mt-3"><BodyMap counts={areaCounts} /></div>
-          )}
+          <div className="mt-3"><BodyMap counts={areaCounts} /></div>
         </section>
       </div>
 
