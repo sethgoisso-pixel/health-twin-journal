@@ -1,4 +1,5 @@
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
+import { Body3D } from "@/components/Body3D";
 import { BACK, FRONT, type Part } from "@/lib/body-parts";
 
 export const BODY_AREAS: { id: string; label: string }[] = [
@@ -28,8 +29,18 @@ type Props = {
  * The person faces you in the front view, so "right" is on the left of the picture.
  */
 export function BodyMap({ selected = [], onToggle, counts }: Props) {
-  const [view, setView] = useState<"front" | "back">("front");
-  const parts = view === "front" ? FRONT : BACK;
+  const [view, setView] = useState<"3d" | "front" | "back">("front");
+  const [last, setLast] = useState("");
+  // Start in 3D when the browser can do WebGL; otherwise the flat map stays.
+  useEffect(() => {
+    try {
+      const c = document.createElement("canvas");
+      if (c.getContext("webgl") || c.getContext("experimental-webgl")) setView("3d");
+    } catch {
+      /* stay on the flat map */
+    }
+  }, []);
+  const parts = view === "back" ? BACK : FRONT;
   const max = counts ? Math.max(1, ...Object.values(counts)) : 1;
   const strength = (area: string) => (counts ? (counts[area] ?? 0) / max : selected.includes(area) ? 1 : 0);
 
@@ -67,7 +78,7 @@ export function BodyMap({ selected = [], onToggle, counts }: Props) {
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="inline-flex rounded-full bg-muted p-1 text-sm">
-        {(["front", "back"] as const).map((v) => (
+        {(["3d", "front", "back"] as const).map((v) => (
           <button
             key={v}
             type="button"
@@ -75,41 +86,54 @@ export function BodyMap({ selected = [], onToggle, counts }: Props) {
             aria-pressed={view === v}
             className={`rounded-full px-4 py-1 ${view === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
           >
-            {v === "front" ? "Front" : "Back"}
+            {v === "3d" ? "3D" : v === "front" ? "Front" : "Back"}
           </button>
         ))}
       </div>
-      <svg viewBox="0 0 200 440" className="h-80 w-auto" role="group" aria-label={`Body map, ${view} view`}>
-        {areas.map((area) => {
-          const s = strength(area);
-          const label = `${areaLabel(area)}${selected.includes(area) ? ", marked" : counts?.[area] ? `, marked on ${counts[area]} day(s)` : ""}`;
-          return (
-            <g
-              key={area}
-              role={onToggle ? "button" : "img"}
-              aria-label={label}
-              aria-pressed={onToggle ? selected.includes(area) : undefined}
-              tabIndex={onToggle ? 0 : -1}
-              style={{ cursor: onToggle ? "pointer" : "default" }}
-              onClick={onToggle ? () => onToggle(area) : undefined}
-              onKeyDown={
-                onToggle
-                  ? (e: KeyboardEvent) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onToggle(area);
+      {view === "3d" ? (
+        <Body3D
+          selected={selected}
+          counts={counts}
+          onUnavailable={() => setView("front")}
+          onPick={(p) => {
+            setLast(`${p.label}${p.area ? ` (${areaLabel(p.area)})` : ""}`);
+            if (onToggle && p.area) onToggle(p.area);
+          }}
+        />
+      ) : (
+        <svg viewBox="0 0 200 440" className="h-80 w-auto" role="group" aria-label={`Body map, ${view} view`}>
+          {areas.map((area) => {
+            const s = strength(area);
+            const label = `${areaLabel(area)}${selected.includes(area) ? ", marked" : counts?.[area] ? `, marked on ${counts[area]} day(s)` : ""}`;
+            return (
+              <g
+                key={area}
+                role={onToggle ? "button" : "img"}
+                aria-label={label}
+                aria-pressed={onToggle ? selected.includes(area) : undefined}
+                tabIndex={onToggle ? 0 : -1}
+                style={{ cursor: onToggle ? "pointer" : "default" }}
+                onClick={onToggle ? () => onToggle(area) : undefined}
+                onKeyDown={
+                  onToggle
+                    ? (e: KeyboardEvent) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onToggle(area);
+                        }
                       }
-                    }
-                  : undefined
-              }
-            >
-              {parts.filter((p) => p.area === area && p.kind === "body").map((p) => draw(p, s))}
-              {parts.filter((p) => p.area === area && p.kind === "organ").map((p) => draw(p, s))}
-            </g>
-          );
-        })}
-      </svg>
-      <p className="text-xs text-muted-foreground">{onToggle ? "Tap an area where you feel something." : "Areas marked in the last 14 days."}</p>
+                    : undefined
+                }
+              >
+                {parts.filter((p) => p.area === area && p.kind === "body").map((p) => draw(p, s))}
+                {parts.filter((p) => p.area === area && p.kind === "organ").map((p) => draw(p, s))}
+              </g>
+            );
+          })}
+        </svg>
+      )}
+      {view === "3d" && last && <p className="text-xs text-foreground">Tapped: {last}</p>}
+      <p className="text-xs text-muted-foreground">{view === "3d" ? (onToggle ? "Drag to turn, tap where you feel something." : "Drag to turn. Highlighted: areas marked in the last 14 days.") : onToggle ? "Tap an area where you feel something." : "Areas marked in the last 14 days."}</p>
     </div>
   );
 }
