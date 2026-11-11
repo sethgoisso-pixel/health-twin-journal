@@ -20,6 +20,8 @@ export type Picked = { area: string; label: string };
 export type AnatomyView = {
   setState: (s: ViewState) => void;
   resetView: () => void;
+  /** Turns the model to face the viewer (front) or show its back. */
+  turnTo: (side: "front" | "back") => void;
   destroy: () => void;
 };
 
@@ -156,6 +158,7 @@ export function createAnatomyView(canvas: HTMLCanvasElement, onPick?: (p: Picked
   const HOME = { yaw: 0, pitch: 0.06, dist: 4.5 };
   let yaw = HOME.yaw, pitch = HOME.pitch, dist = HOME.dist;
   let auto = true;
+  let targetYaw: number | null = null;
   let state: ViewState = { selected: [], showOrgans: true, showBones: false };
   let raf = 0;
   let dirty = true;
@@ -238,7 +241,16 @@ export function createAnatomyView(canvas: HTMLCanvasElement, onPick?: (p: Picked
   };
 
   const loop = () => {
-    if (auto) {
+    if (targetYaw !== null) {
+      const diff = targetYaw - yaw;
+      if (Math.abs(diff) < 0.01) {
+        yaw = targetYaw;
+        targetYaw = null;
+      } else {
+        yaw += diff * 0.18;
+      }
+      dirty = true;
+    } else if (auto) {
       yaw += 0.006;
       dirty = true;
     }
@@ -309,6 +321,7 @@ export function createAnatomyView(canvas: HTMLCanvasElement, onPick?: (p: Picked
       moved = 0;
     }
     auto = false;
+    targetYaw = null;
   };
   const onMove = (e: PointerEvent) => {
     const p = pointers.get(e.pointerId);
@@ -357,7 +370,15 @@ export function createAnatomyView(canvas: HTMLCanvasElement, onPick?: (p: Picked
       state = s;
       dirty = true;
     },
+    turnTo(side) {
+      const base = side === "front" ? 0 : Math.PI;
+      const turns = Math.round((yaw - base) / (2 * Math.PI));
+      targetYaw = base + turns * 2 * Math.PI;
+      auto = false;
+      dirty = true;
+    },
     resetView() {
+      targetYaw = null;
       yaw = HOME.yaw;
       pitch = HOME.pitch;
       dist = HOME.dist;
