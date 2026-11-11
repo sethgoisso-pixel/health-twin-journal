@@ -4,9 +4,10 @@ import { Droplets, Moon, Pill, Activity, ShieldCheck, Sparkles, AlertTriangle } 
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { BodyMap } from "@/components/BodyMap";
 import { todayStr, toEntries, toPerson, useLogs, useProfile } from "@/lib/health-store";
-import { NOT_A_DIAGNOSIS, buildBriefing, runHealthTools, type Briefing } from "@/lib/health-engine";
+import { NOT_A_DIAGNOSIS, URGENT_ADVICE, buildBriefing, runHealthTools, type Briefing } from "@/lib/health-engine";
 import { explainReport } from "@/lib/health-ai.functions";
 import { clearAllData, loadDemo } from "@/lib/health-demo";
+import { useLang, useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,6 +37,8 @@ function Stat({ icon, label, value, hint }: { icon: React.ReactNode; label: stri
 type Shown = { briefing: Briefing; source: "ai" | "rules"; note: string | null };
 
 function Dashboard() {
+  const t = useT();
+  const [lang] = useLang();
   const { profile } = useProfile();
   const { logs } = useLogs();
   const sorted = Object.values(logs).sort((a, b) => b.date.localeCompare(a.date));
@@ -86,24 +89,24 @@ function Dashboard() {
 
       <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-secondary p-4 text-sm">
         <span className="text-muted-foreground">
-          {sorted.length === 0 ? "New here? See the agent working on an invented example person." : "Example data tools"}
+          {t(sorted.length === 0 ? "New here? See the agent working on an invented example person." : "Example data tools")}
         </span>
         <button
           onClick={() => {
-            if (sorted.length === 0 || window.confirm("This replaces the data saved in this browser with an invented example. Continue?")) loadDemo();
+            if (sorted.length === 0 || window.confirm(t("This replaces the data saved in this browser with an invented example. Continue?"))) loadDemo();
           }}
           className="rounded-full bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
         >
-          Load demo data
+          {t("Load demo data")}
         </button>
         {sorted.length > 0 && (
           <button
             onClick={() => {
-              if (window.confirm("This deletes all data saved in this browser. Continue?")) clearAllData();
+              if (window.confirm(t("This deletes all data saved in this browser. Continue?"))) clearAllData();
             }}
             className="rounded-full border border-border px-4 py-2 text-foreground hover:bg-muted"
           >
-            Clear all data
+            {t("Clear all data")}
           </button>
         )}
       </div>
@@ -112,41 +115,42 @@ function Dashboard() {
         <div role="alert" className="mb-6 flex gap-3 rounded-2xl border border-destructive/50 bg-destructive/10 p-5 text-foreground">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
           <div>
-            <p className="font-medium">Something in your recent log needs prompt attention</p>
-            <p className="mt-1 text-sm">Logged: {report.redFlags.join("; ")}. Contact a doctor or your local emergency number now. This app cannot assess an emergency.</p>
+            <p className="font-medium">{t("Something in your recent log needs prompt attention")}</p>
+            <p className="mt-1 text-sm">{t(`Logged: ${report.redFlags.join("; ")}.`)} {t(URGENT_ADVICE)}</p>
           </div>
         </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat icon={<Moon className="h-4 w-4" />} label="Avg sleep" value={report.sleep ? `${report.sleep.avg} h` : "-"} />
-        <Stat icon={<Droplets className="h-4 w-4" />} label="Avg water" value={report.water ? `${report.water.avg} glasses` : "-"} />
-        <Stat icon={<Activity className="h-4 w-4" />} label="BMI" value={report.bmi ? String(report.bmi.value) : "-"} hint={report.bmi ? `${report.bmi.category} (WHO)` : "Add height and weight in Profile"} />
-        <Stat icon={<Pill className="h-4 w-4" />} label="Days logged" value={String(sorted.length)} />
+        <Stat icon={<Moon className="h-4 w-4" />} label={t("Avg sleep")} value={report.sleep ? `${report.sleep.avg} h` : "-"} />
+        <Stat icon={<Droplets className="h-4 w-4" />} label={t("Avg water")} value={report.water ? `${report.water.avg} ${t("glasses")}` : "-"} />
+        <Stat icon={<Activity className="h-4 w-4" />} label={t("BMI")} value={report.bmi ? String(report.bmi.value) : "-"} hint={report.bmi ? `${t(report.bmi.category)} (${t("WHO")})` : t("Add height and weight in Profile")} />
+        <Stat icon={<Pill className="h-4 w-4" />} label={t("Days logged")} value={String(sorted.length)} />
       </div>
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 font-display text-xl text-foreground">
-            <Sparkles className="h-5 w-5 text-primary" /> Health briefing
+            <Sparkles className="h-5 w-5 text-primary" /> {t("Health briefing")}
           </h2>
           <span className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground">
-            {shown.source === "ai" ? "Written by AI, checked by the verifier" : "Rule-based, built from the tool results"}
+            {t(shown.source === "ai" ? "Written by AI, checked by the verifier" : "Rule-based, built from the tool results")}
           </span>
         </div>
-        <p className="mt-4 font-medium text-foreground">{b.headline}</p>
+        <p className="mt-4 font-medium text-foreground">{shown.source === "rules" ? t(b.headline) : b.headline}</p>
         <ul className="mt-3 space-y-2 text-sm text-foreground">
-          {b.points.map((p, i) => <li key={i} className="rounded-xl bg-secondary px-3 py-2">{p}</li>)}
+          {b.points.map((p, i) => <li key={i} className="rounded-xl bg-secondary px-3 py-2">{shown.source === "rules" ? t(p) : p}</li>)}
         </ul>
         {b.doctorQuestions.length > 0 && (
           <div className="mt-4">
-            <p className="text-sm text-muted-foreground">Questions you could ask a doctor</p>
+            <p className="text-sm text-muted-foreground">{t("Questions you could ask a doctor")}</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground">
-              {b.doctorQuestions.map((q, i) => <li key={i}>{q}</li>)}
+              {b.doctorQuestions.map((q, i) => <li key={i}>{shown.source === "rules" ? t(q) : q}</li>)}
             </ul>
           </div>
         )}
         {shown.note && <p className="mt-3 text-xs text-muted-foreground">{shown.note}</p>}
+        {lang === "fr" && shown.source === "ai" && <p className="mt-3 text-xs text-muted-foreground">{t("The AI text is shown in English, the language of the contest.")}</p>}
         {err && <p className="mt-3 text-xs text-destructive">{err}</p>}
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <button
@@ -154,16 +158,16 @@ function Dashboard() {
             disabled={busy || report.daysLogged === 0}
             className="rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            {busy ? "Writing..." : "Explain with AI"}
+            {t(busy ? "Writing..." : "Explain with AI")}
           </button>
-          <span className="text-xs text-muted-foreground">Sends only the computed results (no name, notes or medication names). {NOT_A_DIAGNOSIS}</span>
+          <span className="text-xs text-muted-foreground">{t("Sends only the computed results (no name, notes or medication names).")} {t(NOT_A_DIAGNOSIS)}</span>
         </div>
 
         <details className="mt-5 rounded-xl border border-border p-4 text-sm">
-          <summary className="cursor-pointer text-foreground">Tools the agent ran ({report.trace.length})</summary>
+          <summary className="cursor-pointer text-foreground">{t("Tools the agent ran")} ({report.trace.length})</summary>
           <ol className="mt-3 space-y-1 text-muted-foreground">
-            {report.trace.map((t, i) => (
-              <li key={i}><span className="font-mono text-foreground">{t.tool}</span>: {t.summary}</li>
+            {report.trace.map((step, i) => (
+              <li key={i}><span className="font-mono text-foreground">{step.tool}</span>: {t(step.summary)}</li>
             ))}
           </ol>
         </details>
@@ -172,64 +176,64 @@ function Dashboard() {
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <section className="rounded-2xl border border-border bg-card p-6 lg:col-span-2">
           <h2 className="flex items-center gap-2 font-display text-xl text-foreground">
-            <ShieldCheck className="h-5 w-5 text-primary" /> Type 2 diabetes risk score
+            <ShieldCheck className="h-5 w-5 text-primary" /> {t("Type 2 diabetes risk score")}
           </h2>
           {risk && "result" in risk ? (
             <>
               <p className="mt-3 text-sm text-foreground">
-                <span className="font-display text-3xl">{risk.result.score}</span> of {risk.result.max} - {risk.result.band}. About {risk.result.tenYearRisk.replace("about ", "")} chance over 10 years for people with this score.
+                <span className="font-display text-3xl">{risk.result.score}</span> {t("of")} {risk.result.max} - {t("risk: " + risk.result.band)}. {t(`About ${risk.result.tenYearRisk.replace("about ", "")} chance over 10 years for people with this score.`)}
               </p>
               <table className="mt-4 w-full text-left text-sm">
                 <tbody className="divide-y divide-border">
                   {risk.result.parts.map((p) => (
-                    <tr key={p.label}><td className="py-1.5 text-muted-foreground">{p.label}</td><td className="py-1.5 text-right text-foreground">{p.points}</td></tr>
+                    <tr key={p.label}><td className="py-1.5 text-muted-foreground">{t(p.label)}</td><td className="py-1.5 text-right text-foreground">{p.points}</td></tr>
                   ))}
                 </tbody>
               </table>
-              <p className="mt-3 text-xs text-muted-foreground">Source: {risk.result.source}. Validated mainly in European populations. A screening score, not a diagnosis.</p>
+              <p className="mt-3 text-xs text-muted-foreground">{t(`Source: ${risk.result.source}. Validated mainly in European populations. A screening score, not a diagnosis.`)}</p>
             </>
           ) : risk && "notApplicable" in risk ? (
-            <p className="mt-3 text-sm text-muted-foreground">{risk.notApplicable} Your sleep, water, readings and symptoms are still tracked below.</p>
+            <p className="mt-3 text-sm text-muted-foreground">{t(risk.notApplicable)} {t("Your sleep, water, readings and symptoms are still tracked below.")}</p>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
-              The score needs: {risk && "missing" in risk ? risk.missing.join(", ") : "your profile"}. <Link to="/profile" className="text-primary underline">Complete your profile</Link>. Nothing is guessed.
+              {t(`The score needs: ${risk && "missing" in risk ? risk.missing.join(", ") : "your profile"}.`)} <Link to="/profile" className="text-primary underline">{t("Complete your profile")}</Link>. {t("Nothing is guessed.")}
             </p>
           )}
         </section>
 
         <section className="rounded-2xl border border-border bg-secondary p-6">
-          <h2 className="font-display text-xl text-foreground">Where it hurt (14 days)</h2>
+          <h2 className="font-display text-xl text-foreground">{t("Where it hurt (14 days)")}</h2>
           <div className="mt-3"><BodyMap counts={areaCounts} /></div>
         </section>
       </div>
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-6">
-        <h2 className="font-display text-xl text-foreground">Mood and worry check</h2>
+        <h2 className="font-display text-xl text-foreground">{t("Mood and worry check")}</h2>
         {report.mood.low || report.mood.worry ? (
           <>
             <ul className="mt-3 space-y-1 text-sm text-foreground">
-              {report.mood.low && <li>Mood (PHQ-2): {report.mood.low.score} of {report.mood.low.max}{report.mood.low.positive ? ", at or above the usual cutoff" : ", below the usual cutoff"}</li>}
-              {report.mood.worry && <li>Worry (GAD-2): {report.mood.worry.score} of {report.mood.worry.max}{report.mood.worry.positive ? ", at or above the usual cutoff" : ", below the usual cutoff"}</li>}
+              {report.mood.low && <li>{t(`Mood (PHQ-2): ${report.mood.low.score} of ${report.mood.low.max}${report.mood.low.positive ? ", at or above the usual cutoff" : ", below the usual cutoff"}`)}</li>}
+              {report.mood.worry && <li>{t(`Worry (GAD-2): ${report.mood.worry.score} of ${report.mood.worry.max}${report.mood.worry.positive ? ", at or above the usual cutoff" : ", below the usual cutoff"}`)}</li>}
             </ul>
             {(report.mood.low?.positive || report.mood.worry?.positive) && (
               <p className="mt-3 rounded-xl bg-secondary p-3 text-sm text-foreground">
-                Worth talking with a doctor or counsellor. If you ever feel unsafe or think about harming yourself, contact your local emergency number or someone you trust right away.
+                {t("Worth talking with a doctor or counsellor. If you ever feel unsafe or think about harming yourself, contact your local emergency number or someone you trust right away.")}
               </p>
             )}
-            <p className="mt-3 text-xs text-muted-foreground">Source: {report.mood.source}. A screen, not a diagnosis.</p>
+            <p className="mt-3 text-xs text-muted-foreground">{t(`Source: ${report.mood.source}. A screen, not a diagnosis.`)}</p>
           </>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">
-            Four quick questions in your <Link to="/profile" className="text-primary underline">profile</Link> give a mood and worry screen. Nothing is guessed.
+            {t("Four quick questions in your")} <Link to="/profile" className="text-primary underline">{t("profile")}</Link> {t("give a mood and worry screen. Nothing is guessed.")}
           </p>
         )}
       </section>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <section className="rounded-2xl border border-border bg-card p-6 lg:col-span-2">
-          <h2 className="font-display text-xl text-foreground">Sleep, last 7 entries</h2>
+          <h2 className="font-display text-xl text-foreground">{t("Sleep, last 7 entries")}</h2>
           {last7.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">No entries yet.</p>
+            <p className="mt-4 text-sm text-muted-foreground">{t("No entries yet.")}</p>
           ) : (
             <div className="mt-6 flex h-40 items-end gap-3">
               {[...last7].reverse().map((l) => {
@@ -247,32 +251,32 @@ function Dashboard() {
         </section>
 
         <section className="rounded-2xl border border-border bg-secondary p-6">
-          <h2 className="font-display text-xl text-foreground">Today</h2>
+          <h2 className="font-display text-xl text-foreground">{t("Today")}</h2>
           {today ? (
             <dl className="mt-4 space-y-2 text-sm">
-              <div><dt className="text-muted-foreground">Sleep</dt><dd className="text-foreground">{today.sleepHours || "-"} h</dd></div>
-              <div><dt className="text-muted-foreground">Water</dt><dd className="text-foreground">{today.waterGlasses || "-"} glasses</dd></div>
-              <div><dt className="text-muted-foreground">Symptoms</dt><dd className="text-foreground">{today.symptomIds.length ? `${today.symptomIds.length} marked` : "None marked"}</dd></div>
+              <div><dt className="text-muted-foreground">{t("Sleep")}</dt><dd className="text-foreground">{today.sleepHours || "-"} h</dd></div>
+              <div><dt className="text-muted-foreground">{t("Water")}</dt><dd className="text-foreground">{today.waterGlasses || "-"} {t("glasses")}</dd></div>
+              <div><dt className="text-muted-foreground">{t("Symptoms")}</dt><dd className="text-foreground">{today.symptomIds.length ? t(`${today.symptomIds.length} marked`) : t("None marked")}</dd></div>
             </dl>
           ) : (
-            <p className="mt-4 text-sm text-muted-foreground">You haven't logged today yet.</p>
+            <p className="mt-4 text-sm text-muted-foreground">{t("You haven't logged today yet.")}</p>
           )}
           <Link to="/log" className="mt-6 inline-flex rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90">
-            {today ? "Edit today's log" : "Log today"}
+            {t(today ? "Edit today's log" : "Log today")}
           </Link>
         </section>
       </div>
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-6">
-        <h2 className="font-display text-xl text-foreground">Most frequent symptoms (14 days)</h2>
+        <h2 className="font-display text-xl text-foreground">{t("Most frequent symptoms (14 days)")}</h2>
         {report.symptomDays.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">Nothing recorded. That is good news.</p>
+          <p className="mt-4 text-sm text-muted-foreground">{t("Nothing recorded. That is good news.")}</p>
         ) : (
           <ul className="mt-4 divide-y divide-border">
             {report.symptomDays.slice(0, 6).map((s) => (
               <li key={s.label} className="flex justify-between py-2 text-sm">
-                <span className="text-foreground">{s.label}</span>
-                <span className="text-muted-foreground">{s.days} day(s)</span>
+                <span className="text-foreground">{t(s.label)}</span>
+                <span className="text-muted-foreground">{t(`${s.days} day(s)`)}</span>
               </li>
             ))}
           </ul>

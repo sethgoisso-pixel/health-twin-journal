@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { useProfile, type Profile } from "@/lib/health-store";
 import { qrGrid, qrSvgPath } from "@/lib/qr";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/card")({
   head: () => ({
@@ -34,6 +35,7 @@ function cardText(p: Profile): string {
 }
 
 function CardPage() {
+  const t = useT();
   const { profile, loaded } = useProfile();
   const text = useMemo(() => cardText(profile), [profile]);
   const qr = useMemo(() => {
@@ -64,17 +66,17 @@ function CardPage() {
 
       {empty ? (
         <p className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground print:hidden">
-          Your card is empty. <Link to="/profile" className="text-primary underline">Fill in your profile</Link> first (allergies, conditions, medication, emergency contact).
+          {t("Your card is empty.")} <Link to="/profile" className="text-primary underline">{t("Fill in your profile")}</Link> {t("first (allergies, conditions, medication, emergency contact).")}
         </p>
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           <article className="rounded-2xl border-2 border-primary/40 bg-card p-6 lg:col-span-2 print:border-black">
-            <h2 className="font-display text-2xl text-foreground">Emergency medical card</h2>
-            <p className="text-xs text-muted-foreground">Self-reported. Not verified by a doctor.</p>
+            <h2 className="font-display text-2xl text-foreground">{t("Emergency medical card")}</h2>
+            <p className="text-xs text-muted-foreground">{t("Self-reported. Not verified by a doctor.")}</p>
             <dl className="mt-5 grid gap-x-6 gap-y-3 sm:grid-cols-2">
               {rows.map(([k, v]) => (
                 <div key={k} className={k === "Allergies" || k === "Regular medication" || k === "Known conditions" ? "sm:col-span-2" : ""}>
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">{k}</dt>
+                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">{t(k)}</dt>
                   <dd className="whitespace-pre-wrap text-foreground">{v.trim() || "-"}</dd>
                 </div>
               ))}
@@ -87,20 +89,20 @@ function CardPage() {
                 <path d={qr.d} fill="#000" />
               </svg>
             ) : (
-              <p className="text-sm text-destructive">The card text is too long for a QR code. Shorten the profile fields.</p>
+              <p className="text-sm text-destructive">{t("The card text is too long for a QR code. Shorten the profile fields.")}</p>
             )}
             <p className="text-center text-xs text-muted-foreground">
-              Any phone camera reads it and shows the text above. No app and no internet needed.
+              {t("Any phone camera reads it and shows the text above. No app and no internet needed.")} {t("The QR text stays in English, so a doctor abroad can read it.")}
             </p>
             <button onClick={() => window.print()} className="rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 print:hidden">
-              Print or save as PDF
+              {t("Print or save as PDF")}
             </button>
           </aside>
         </div>
       )}
 
       <p className="mt-6 text-xs text-muted-foreground print:hidden">
-        Privacy: anyone who scans this code can read everything on the card. Print only what you are comfortable sharing, and keep the card where a responder would look.
+        {t("Privacy: anyone who scans this code can read everything on the card. Print only what you are comfortable sharing, and keep the card where a responder would look.")}
       </p>
     </AppShell>
   );
