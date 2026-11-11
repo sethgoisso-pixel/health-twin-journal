@@ -79,19 +79,21 @@ export function BodyMap({ selected = [], onToggle, counts }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="inline-flex rounded-full bg-muted p-1 text-sm">
-        {(["3d", "front", "back"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setView(v)}
-            aria-pressed={view === v}
-            className={`rounded-full px-4 py-1 ${view === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
-          >
-            {v === "3d" ? "3D" : t(v === "front" ? "Front" : "Back")}
-          </button>
-        ))}
-      </div>
+      {view !== "3d" && (
+        <div className="inline-flex rounded-full bg-muted p-1 text-sm">
+          {(["front", "back"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              aria-pressed={view === v}
+              className={`rounded-full px-4 py-1 ${view === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              {t(v === "front" ? "Front" : "Back")}
+            </button>
+          ))}
+        </div>
+      )}
       {view === "3d" ? (
         <Body3D
           selected={selected}

@@ -65,6 +65,12 @@ export function Body3D({ selected, counts, onPick, onUnavailable }: Props) {
         aria-label="Interactive 3D anatomy model. Drag to turn it, pinch to zoom, tap an organ to mark its area."
       />
       <div className="inline-flex rounded-full bg-muted p-1">
+        <button type="button" onClick={() => viewRef.current?.turnTo("front")} className={chip(false)}>
+          {t("Front")}
+        </button>
+        <button type="button" onClick={() => viewRef.current?.turnTo("back")} className={chip(false)}>
+          {t("Back")}
+        </button>
         <button type="button" aria-pressed={showOrgans} onClick={() => setShowOrgans((v) => !v)} className={chip(showOrgans)}>
           {t("Organs")}
         </button>
