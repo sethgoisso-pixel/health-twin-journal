@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { AnatomyView, Picked } from "@/lib/anatomy-view";
+import { useT } from "@/lib/i18n";
 
 type Props = {
   selected: string[];
@@ -11,6 +12,7 @@ type Props = {
 
 /** Turnable 3D anatomy. Model: BodyParts3D, CC BY-SA 2.1 Japan (see the credit under the figure). */
 export function Body3D({ selected, counts, onPick, onUnavailable }: Props) {
+  const t = useT();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewRef = useRef<AnatomyView | null>(null);
   const [showOrgans, setShowOrgans] = useState(true);
@@ -64,13 +66,13 @@ export function Body3D({ selected, counts, onPick, onUnavailable }: Props) {
       />
       <div className="inline-flex rounded-full bg-muted p-1">
         <button type="button" aria-pressed={showOrgans} onClick={() => setShowOrgans((v) => !v)} className={chip(showOrgans)}>
-          Organs
+          {t("Organs")}
         </button>
         <button type="button" aria-pressed={showBones} onClick={() => setShowBones((v) => !v)} className={chip(showBones)}>
-          Bones
+          {t("Bones")}
         </button>
         <button type="button" onClick={() => viewRef.current?.resetView()} className={chip(false)}>
-          Reset view
+          {t("Reset view")}
         </button>
       </div>
       <p className="text-center text-[10px] text-muted-foreground">

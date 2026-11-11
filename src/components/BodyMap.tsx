@@ -1,5 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { Body3D } from "@/components/Body3D";
+import { useT } from "@/lib/i18n";
 import { BACK, FRONT, type Part } from "@/lib/body-parts";
 
 export const BODY_AREAS: { id: string; label: string }[] = [
@@ -29,6 +30,7 @@ type Props = {
  * The person faces you in the front view, so "right" is on the left of the picture.
  */
 export function BodyMap({ selected = [], onToggle, counts }: Props) {
+  const t = useT();
   const [view, setView] = useState<"3d" | "front" | "back">("front");
   const [last, setLast] = useState("");
   // Start in 3D when the browser can do WebGL; otherwise the flat map stays.
@@ -86,7 +88,7 @@ export function BodyMap({ selected = [], onToggle, counts }: Props) {
             aria-pressed={view === v}
             className={`rounded-full px-4 py-1 ${view === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
           >
-            {v === "3d" ? "3D" : v === "front" ? "Front" : "Back"}
+            {v === "3d" ? "3D" : t(v === "front" ? "Front" : "Back")}
           </button>
         ))}
       </div>
@@ -101,10 +103,10 @@ export function BodyMap({ selected = [], onToggle, counts }: Props) {
           }}
         />
       ) : (
-        <svg viewBox="0 0 200 440" className="h-80 w-auto" role="group" aria-label={`Body map, ${view} view`}>
+        <svg viewBox="0 0 200 440" className="h-80 w-auto" role="group" aria-label={`${t("Body")}, ${view}`}>
           {areas.map((area) => {
             const s = strength(area);
-            const label = `${areaLabel(area)}${selected.includes(area) ? ", marked" : counts?.[area] ? `, marked on ${counts[area]} day(s)` : ""}`;
+            const label = `${t(areaLabel(area))}${selected.includes(area) ? `, ${t("marked")}` : counts?.[area] ? `, ${t(`${counts[area]} day(s)`)}` : ""}`;
             return (
               <g
                 key={area}
@@ -132,8 +134,8 @@ export function BodyMap({ selected = [], onToggle, counts }: Props) {
           })}
         </svg>
       )}
-      {view === "3d" && last && <p className="text-xs text-foreground">Tapped: {last}</p>}
-      <p className="text-xs text-muted-foreground">{view === "3d" ? (onToggle ? "Drag to turn, tap where you feel something." : "Drag to turn. Highlighted: areas marked in the last 14 days.") : onToggle ? "Tap an area where you feel something." : "Areas marked in the last 14 days."}</p>
+      {view === "3d" && last && <p className="text-xs text-foreground">{t(`Tapped: ${last}`)}</p>}
+      <p className="text-xs text-muted-foreground">{t(view === "3d" ? (onToggle ? "Drag to turn, tap where you feel something." : "Drag to turn. Highlighted: areas marked in the last 14 days.") : onToggle ? "Tap an area where you feel something." : "Areas marked in the last 14 days.")}</p>
     </div>
   );
 }
